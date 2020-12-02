@@ -25,17 +25,22 @@ public class ManagerWebTextures : MonoBehaviour
     public static event Action<Texture> OnTextureCreatedEvent;
     public static event Action OnRequestCompleteEvent;
 
-    int requestCountToCallback;
+    public int requestCountToCallback;
+
+    Task task;
+
     #region Unity Message
     private void Awake()
     {
-        // GeneratorSignal.OnSignalEvent += TriggerGetTextureTaskAsync;
+        GeneratorSignal.OnSignalEvent += TriggerGetTextureTask;
 
-        GeneratorSignal.OnSignalEvent += TriggerGetTextureCoroutine;
+        //GeneratorSignal.OnSignalEvent += TriggerGetTextureCoroutine;
     }
     private void Reset()
     {
         oneTimeTextureRequestCount = 6;
+
+        requestCountToCallback = oneTimeTextureRequestCount;
 
         uriSource = new List<string>()
         {
@@ -51,6 +56,13 @@ public class ManagerWebTextures : MonoBehaviour
 
     private void Update()
     {
+        if (task != null && task.IsCompleted)
+        {
+            task = default;
+
+            OnRequestCompleteEvent?.Invoke();
+        }
+
         while (rawWebRequestDatas.Any())
         {
             byte[] b = rawWebRequestDatas.First();
@@ -103,12 +115,20 @@ public class ManagerWebTextures : MonoBehaviour
         }
     }
 
+    public void TriggerGetTextureTask()
+    {
+        requestCountToCallback = oneTimeTextureRequestCount;
+
+        task = Task.Factory.StartNew(TriggerGetTextureTaskAsync);
+    }
     /// <summary>
     /// Веб запрос с помощью <see cref="Task"/>
     /// TODO: avoid UnitySynchronizationContext.EecuteTasks()
     /// </summary>
-    public async void TriggerGetTextureTaskAsync()
+    public async Task TriggerGetTextureTaskAsync()
     {
+        Debug.LogError($"<color=green>TriggerGetTextureTaskAsync</color> " + Thread.CurrentThread.ManagedThreadId);
+
         Debug.Log("TriggerGetTextureAsync");
 
         List<Task<byte[]>> tasks = new List<Task<byte[]>>();
@@ -130,10 +150,12 @@ public class ManagerWebTextures : MonoBehaviour
 
             OnTextureRawRecivedEvent?.Invoke(taskCompleted.Result);
 
+            CheckCallback();
+
             //Debug.Log($"{tasks.Count} Time: {Time.realtimeSinceStartup} Size: {taskCompleted.Result.Length}");
         }
 
-        OnRequestCompleteEvent?.Invoke();
+        Debug.LogError(Thread.CurrentThread.ManagedThreadId);
     }
 
     public void CreateTextureAndNotify(byte[] rawData)

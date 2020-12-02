@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -35,6 +36,8 @@ public class GeneratorSignal : MonoBehaviour
 
         if (leftToNewSignal < 0)
         {
+            Debug.Log($"<color=lime>Signal</color>");
+
             OnSignalEvent?.Invoke();
 
             enabled = false;
@@ -44,6 +47,8 @@ public class GeneratorSignal : MonoBehaviour
 
     public void ScheduleNewSignal()
     {
+        Debug.LogError(Thread.CurrentThread.ManagedThreadId);
+        //Debug.Log($"ScheduleNewSignal");
         switch (generatorType)
         {
             case GeneratorType.PeriodicalStrict:
@@ -59,6 +64,8 @@ public class GeneratorSignal : MonoBehaviour
     }
     public void GenerateRandom()
     {
+        Debug.LogError(Thread.CurrentThread.ManagedThreadId);
+
         leftToNewSignal = Random.Range(randomMin, randomMax);
 
         //Debug.Log($"New time: {leftToNewSignal}");
